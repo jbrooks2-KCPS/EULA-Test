@@ -36,9 +36,32 @@
             cursor: pointer;
             font-size: 16px;
             margin-right: 10px;
+            position: relative;
+            min-width: 120px;
         }
         button:hover {
             background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .button-spinner {
+            display: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .button-text {
+            display: inline-block;
         }
         .message {
             padding: 15px;
@@ -199,7 +222,10 @@
             <label for="studentNumber">Student Number:</label>
             <input type="text" id="studentNumber" name="studentNumber" required>
         </div>
-        <button type="submit">Accept EULA</button>
+        <button type="submit" id="submitButton">
+            <div class="button-spinner" id="buttonSpinner"></div>
+            <span class="button-text" id="buttonText">Accept EULA</span>
+        </button>
     </form>
 
     <div id="message" class="message"></div>
@@ -215,6 +241,22 @@
             setTimeout(() => {
                 messageDiv.style.display = 'none';
             }, 3000);
+        }
+
+        function setButtonState(loading, text) {
+            const button = document.getElementById('submitButton');
+            const spinner = document.getElementById('buttonSpinner');
+            const buttonText = document.getElementById('buttonText');
+            
+            if (loading) {
+                button.disabled = true;
+                spinner.style.display = 'inline-block';
+                buttonText.textContent = text || 'Processing...';
+            } else {
+                button.disabled = false;
+                spinner.style.display = 'none';
+                buttonText.textContent = 'Accept EULA';
+            }
         }
 
         async function captureAndSaveScreenshot(studentNumber) {
@@ -372,7 +414,12 @@
             e.preventDefault();
             const studentNumber = document.getElementById('studentNumber').value;
             
+            // Set initial loading state
+            setButtonState(true, 'Processing...');
+            
             try {
+                // Step 1: Submit EULA acceptance
+                setButtonState(true, 'Submitting EULA...');
                 const response = await fetch('https://script.google.com/macros/s/AKfycbxGCz5eV9dv6MnxhUnKm_zuCHJram2WY5xYgztHXSc4avAsTcLyl90dUorfS_vm6LCq/exec', {
                     method: 'POST',
                     headers: {
@@ -389,8 +436,12 @@
                     showMessage('EULA successfully accepted!', 'success');
                 }
                 
-                // Capture and save screenshot
+                // Step 2: Capture and save screenshot
+                setButtonState(true, 'Creating screenshot...');
                 await captureAndSaveScreenshot(studentNumber);
+                
+                // Step 3: Complete
+                setButtonState(true, 'Complete!');
                 
                 // Redirect to mosyleschool:// after showing message
                 setTimeout(() => {
@@ -399,6 +450,7 @@
             } catch (error) {
                 console.error('Error:', error);
                 showMessage('There was an error processing your request. Please try again.', 'error');
+                setButtonState(false); // Reset button state on error
             }
         });
     </script>
