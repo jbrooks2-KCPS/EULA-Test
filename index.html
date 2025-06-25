@@ -246,36 +246,69 @@
                     canvas.toBlob(resolve, 'image/png', 0.95);
                 });
                 
+                // Convert blob to base64 for Google Sheets storage
+                const base64 = await new Promise(resolve => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.readAsDataURL(blob);
+                });
+                
                 // Create file from blob
                 const file = new File([blob], `EULA_Acceptance_${studentNumber}_${new Date().toISOString().split('T')[0]}.png`, {
                     type: 'image/png'
                 });
                 
-                // Check if Web Share API is available
-                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({
-                        title: 'EULA Acceptance Record',
-                        text: `EULA acceptance record for student ${studentNumber}`,
-                        files: [file]
+                // Save image data to Google Sheets
+                try {
+                    const imageResponse = await fetch('https://script.google.com/macros/s/AKfycbxGCz5eV9dv6MnxhUnKm_zuCHJram2WY5xYgztHXSc4avAsTcLyl90dUorfS_vm6LCq/exec', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `studentNumber=${encodeURIComponent(studentNumber)}&imageData=${encodeURIComponent(base64)}&action=saveImage`
                     });
-                    showMessage('EULA acceptance record saved to Photos!', 'success');
+                    
+                    const imageResult = await imageResponse.text();
+                    console.log('Image saved to Google Sheets:', imageResult);
+                } catch (imageError) {
+                    console.error('Error saving image to Google Sheets:', imageError);
+                }
+                
+                // Check if Web Share API is available and try to save to Photos
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            title: 'EULA Acceptance Record',
+                            text: `EULA acceptance record for student ${studentNumber}. Tap "Save to Photos" to save this record.`,
+                            files: [file]
+                        });
+                        showMessage('EULA acceptance record shared! Check your Photos app.', 'success');
+                    } catch (shareError) {
+                        console.error('Share error:', shareError);
+                        // Fallback to download
+                        downloadImage(blob, studentNumber);
+                    }
                 } else {
                     // Fallback: download the file
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `EULA_Acceptance_${studentNumber}_${new Date().toISOString().split('T')[0]}.png`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                    showMessage('EULA acceptance record downloaded!', 'success');
+                    downloadImage(blob, studentNumber);
                 }
                 
             } catch (error) {
                 console.error('Error capturing screenshot:', error);
                 showMessage('Error saving EULA record. Please try again.', 'error');
             }
+        }
+
+        function downloadImage(blob, studentNumber) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `EULA_Acceptance_${studentNumber}_${new Date().toISOString().split('T')[0]}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showMessage('EULA acceptance record downloaded! You can save it to Photos manually.', 'success');
         }
 
         document.getElementById('eulaForm').addEventListener('submit', async function(e) {
