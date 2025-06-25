@@ -303,7 +303,11 @@
         }
 
         async function trySaveImage(file, blob, studentNumber) {
-            // Method 1: Try Web Share API to save directly to Photos (best for iOS)
+            // Create a direct download link that works on all devices
+            const url = URL.createObjectURL(blob);
+            const filename = `EULA_Acceptance_${studentNumber}_${new Date().toISOString().split('T')[0]}.png`;
+            
+            // Method 1: Try Web Share API first (works best on iOS)
             if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                 try {
                     await navigator.share({
@@ -312,41 +316,19 @@
                         files: [file]
                     });
                     showMessage('EULA acceptance record shared! Check your Photos app.', 'success');
+                    URL.revokeObjectURL(url);
                     return;
                 } catch (shareError) {
                     console.error('Share error:', shareError);
                 }
             }
             
-            // Method 2: For iOS devices, show manual save with Files option
-            if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-                displayImageForManualSave(blob, studentNumber);
-                return;
-            }
-            
-            // Method 3: For non-iOS devices, try download to Files/Downloads
-            try {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `EULA_Acceptance_${studentNumber}_${new Date().toISOString().split('T')[0]}.png`;
-                a.style.display = 'none';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                showMessage('EULA acceptance record downloaded to Files!', 'success');
-                return;
-            } catch (downloadError) {
-                console.error('Download error:', downloadError);
-            }
-            
-            // Method 4: Ultimate fallback - display image for manual save
-            displayImageForManualSave(blob, studentNumber);
+            // Method 2: Create a direct download link and display it
+            displayDownloadOptions(url, filename, studentNumber);
         }
 
-        function displayImageForManualSave(blob, studentNumber) {
-            // Create a modal to display the image
+        function displayDownloadOptions(url, filename, studentNumber) {
+            // Create a modal with multiple download options
             const modal = document.createElement('div');
             modal.style.cssText = `
                 position: fixed;
@@ -363,88 +345,193 @@
                 padding: 20px;
             `;
             
-            const imageUrl = URL.createObjectURL(blob);
-            const img = document.createElement('img');
-            img.src = imageUrl;
-            img.style.cssText = `
-                max-width: 95%;
-                max-height: 55%;
-                border: 3px solid white;
-                border-radius: 12px;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            const content = document.createElement('div');
+            content.style.cssText = `
+                background: white;
+                border-radius: 15px;
+                padding: 30px;
+                max-width: 500px;
+                width: 90%;
+                text-align: center;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            `;
+            
+            const title = document.createElement('h2');
+            title.textContent = '📱 Save Your EULA Acceptance Record';
+            title.style.cssText = `
+                color: #4CAF50;
+                margin-bottom: 20px;
+                font-size: 24px;
+            `;
+            
+            const imagePreview = document.createElement('img');
+            imagePreview.src = url;
+            imagePreview.style.cssText = `
+                max-width: 100%;
+                max-height: 300px;
+                border: 2px solid #ddd;
+                border-radius: 8px;
+                margin: 20px 0;
             `;
             
             const instructions = document.createElement('div');
             instructions.style.cssText = `
-                color: white;
-                text-align: center;
-                margin-top: 25px;
-                font-size: 18px;
-                line-height: 1.6;
-                max-width: 500px;
+                margin: 20px 0;
+                text-align: left;
             `;
             
-            // Check if it's an iOS device for specific instructions
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
             
             if (isIOS) {
                 instructions.innerHTML = `
-                    <h3 style="color: #4CAF50; margin-bottom: 15px;">📱 Save Your EULA Acceptance Record</h3>
-                    <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin: 15px 0;">
-                        <p style="font-weight: bold; color: #4CAF50; margin-bottom: 15px;">Choose how to save:</p>
-                        <div style="margin: 15px 0; padding: 15px; background: rgba(76,175,80,0.2); border-radius: 8px;">
-                            <p style="font-weight: bold; margin-bottom: 8px;">📸 Save to Photos:</p>
-                            <p style="margin: 5px 0; font-size: 16px;">1. Long press the image above</p>
-                            <p style="margin: 5px 0; font-size: 16px;">2. Select "Save Image"</p>
-                        </div>
-                        <div style="margin: 15px 0; padding: 15px; background: rgba(255,193,7,0.2); border-radius: 8px;">
-                            <p style="font-weight: bold; margin-bottom: 8px;">📁 Save to Files:</p>
-                            <p style="margin: 5px 0; font-size: 16px;">1. Long press the image above</p>
-                            <p style="margin: 5px 0; font-size: 16px;">2. Select "Save to Files"</p>
-                        </div>
+                    <h3 style="color: #333; margin-bottom: 15px;">Choose your save method:</h3>
+                    
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #4CAF50;">
+                        <h4 style="color: #4CAF50; margin: 0 0 10px 0;">📸 Method 1: Save to Photos</h4>
+                        <p style="margin: 5px 0; color: #666;">1. Long press on the image above</p>
+                        <p style="margin: 5px 0; color: #666;">2. Select "Save Image"</p>
                     </div>
-                    <p style="font-style: italic; color: #ccc; margin-top: 15px;">This serves as proof of your EULA acceptance.</p>
+                    
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ffc107;">
+                        <h4 style="color: #ffc107; margin: 0 0 10px 0;">📁 Method 2: Save to Files</h4>
+                        <p style="margin: 5px 0; color: #666;">1. Long press on the image above</p>
+                        <p style="margin: 5px 0; color: #666;">2. Select "Save to Files"</p>
+                    </div>
+                    
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #2196F3;">
+                        <h4 style="color: #2196F3; margin: 0 0 10px 0;">🔗 Method 3: Direct Download</h4>
+                        <p style="margin: 5px 0; color: #666;">Click the download button below</p>
+                    </div>
                 `;
             } else {
                 instructions.innerHTML = `
-                    <h3 style="color: #4CAF50; margin-bottom: 15px;">💾 Save Your EULA Acceptance Record</h3>
-                    <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin: 15px 0;">
-                        <p style="font-weight: bold; color: #4CAF50; margin-bottom: 10px;">To save this image:</p>
-                        <p style="margin: 8px 0;">1️⃣ <strong>Right-click</strong> on the image above</p>
-                        <p style="margin: 8px 0;">2️⃣ Select <strong>"Save Image As..."</strong></p>
-                        <p style="margin: 8px 0;">3️⃣ Choose your desired location</p>
+                    <h3 style="color: #333; margin-bottom: 15px;">Save your EULA acceptance record:</h3>
+                    
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #4CAF50;">
+                        <h4 style="color: #4CAF50; margin: 0 0 10px 0;">💾 Method 1: Right-click Save</h4>
+                        <p style="margin: 5px 0; color: #666;">1. Right-click on the image above</p>
+                        <p style="margin: 5px 0; color: #666;">2. Select "Save Image As..."</p>
                     </div>
-                    <p style="font-style: italic; color: #ccc; margin-top: 15px;">This serves as proof of your EULA acceptance.</p>
+                    
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #2196F3;">
+                        <h4 style="color: #2196F3; margin: 0 0 10px 0;">🔗 Method 2: Direct Download</h4>
+                        <p style="margin: 5px 0; color: #666;">Click the download button below</p>
+                    </div>
                 `;
             }
             
-            const closeButton = document.createElement('button');
-            closeButton.textContent = 'Close';
-            closeButton.style.cssText = `
-                margin-top: 25px;
-                padding: 12px 30px;
+            // Create download button
+            const downloadBtn = document.createElement('button');
+            downloadBtn.textContent = '📥 Download EULA Record';
+            downloadBtn.style.cssText = `
                 background: #4CAF50;
                 color: white;
                 border: none;
+                padding: 15px 30px;
                 border-radius: 8px;
                 font-size: 16px;
-                cursor: pointer;
                 font-weight: bold;
+                cursor: pointer;
+                margin: 10px;
+                display: inline-block;
             `;
-            closeButton.onclick = () => {
-                document.body.removeChild(modal);
-                URL.revokeObjectURL(imageUrl);
+            downloadBtn.onclick = () => {
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                showMessage('Download started! Check your Downloads folder.', 'success');
             };
             
-            modal.appendChild(img);
-            modal.appendChild(instructions);
-            modal.appendChild(closeButton);
+            // Create confirmation buttons
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.cssText = `
+                margin-top: 25px;
+                display: flex;
+                justify-content: center;
+                gap: 15px;
+                flex-wrap: wrap;
+            `;
+            
+            const savedBtn = document.createElement('button');
+            savedBtn.textContent = '✅ I Saved the Image - Continue';
+            savedBtn.style.cssText = `
+                background: #4CAF50;
+                color: white;
+                border: none;
+                padding: 15px 25px;
+                border-radius: 8px;
+                font-size: 16px;
+                font-weight: bold;
+                cursor: pointer;
+            `;
+            savedBtn.onclick = () => {
+                document.body.removeChild(modal);
+                URL.revokeObjectURL(url);
+                showMessage('Great! Proceeding to next step...', 'success');
+                // Continue with the redirect
+                setTimeout(() => {
+                    window.location.href = 'mosyleschool://';
+                }, 1000);
+            };
+            
+            const skipBtn = document.createElement('button');
+            skipBtn.textContent = '⏭️ Skip Saving - Continue';
+            skipBtn.style.cssText = `
+                background: #ff9800;
+                color: white;
+                border: none;
+                padding: 15px 25px;
+                border-radius: 8px;
+                font-size: 16px;
+                font-weight: bold;
+                cursor: pointer;
+            `;
+            skipBtn.onclick = () => {
+                document.body.removeChild(modal);
+                URL.revokeObjectURL(url);
+                showMessage('Skipped image saving. Proceeding...', 'info');
+                // Continue with the redirect
+                setTimeout(() => {
+                    window.location.href = 'mosyleschool://';
+                }, 1000);
+            };
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.textContent = '❌ Cancel';
+            closeBtn.style.cssText = `
+                background: #666;
+                color: white;
+                border: none;
+                padding: 12px 25px;
+                border-radius: 6px;
+                font-size: 14px;
+                cursor: pointer;
+            `;
+            closeBtn.onclick = () => {
+                document.body.removeChild(modal);
+                URL.revokeObjectURL(url);
+                setButtonState(false); // Reset button state
+            };
+            
+            content.appendChild(title);
+            content.appendChild(imagePreview);
+            content.appendChild(instructions);
+            content.appendChild(downloadBtn);
+            buttonContainer.appendChild(savedBtn);
+            buttonContainer.appendChild(skipBtn);
+            buttonContainer.appendChild(closeBtn);
+            content.appendChild(buttonContainer);
+            modal.appendChild(content);
             document.body.appendChild(modal);
             
             if (isIOS) {
-                showMessage('EULA record displayed! Long press to save to Photos or Files.', 'info');
+                showMessage('EULA record ready! Save the image, then click "I Saved the Image - Continue"', 'info');
             } else {
-                showMessage('EULA record displayed! Right-click to save the image.', 'info');
+                showMessage('EULA record ready! Save the image, then click "I Saved the Image - Continue"', 'info');
             }
         }
 
@@ -478,13 +565,12 @@
                 setButtonState(true, 'Creating screenshot...');
                 await captureAndSaveScreenshot(studentNumber);
                 
-                // Step 3: Complete
+                // Step 3: Complete - user will control when to proceed
                 setButtonState(true, 'Complete!');
                 
-                // Redirect to mosyleschool:// after showing message
-                setTimeout(() => {
-                    window.location.href = 'mosyleschool://';
-                }, 2000);
+                // Don't redirect automatically - let user control it
+                // The redirect will happen when they click the confirmation buttons
+                
             } catch (error) {
                 console.error('Error:', error);
                 showMessage('There was an error processing your request. Please try again.', 'error');
