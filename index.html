@@ -27,6 +27,9 @@
             width: 100%;
             padding: 8px;
             margin-top: 5px;
+            font-family: monospace;
+            font-size: 16px;
+            letter-spacing: 1px;
         }
         button {
             background-color: #4CAF50;
@@ -115,6 +118,20 @@
             border-top: 1px solid #ccc;
             font-size: 12px;
             color: #666;
+        }
+        .input-error {
+            border: 2px solid #f44336;
+            background-color: #ffebee;
+        }
+        .input-valid {
+            border: 2px solid #4CAF50;
+            background-color: #f1f8e9;
+        }
+        .format-hint {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
         }
     </style>
 </head>
@@ -220,7 +237,8 @@
     <form id="eulaForm">
         <div class="form-group">
             <label for="studentNumber">Student Number:</label>
-            <input type="text" id="studentNumber" name="studentNumber" required>
+            <input type="text" id="studentNumber" name="studentNumber" required placeholder="S1234567" maxlength="8">
+            <div class="format-hint">Format: S####### (S followed by 7 digits)</div>
         </div>
         <button type="submit" id="submitButton">
             <div class="button-spinner" id="buttonSpinner"></div>
@@ -242,6 +260,70 @@
                 messageDiv.style.display = 'none';
             }, 3000);
         }
+
+        function validateStudentNumber(studentNumber) {
+            // Check if it matches the pattern S####### (S followed by 7 digits)
+            const pattern = /^S\d{7}$/;
+            return pattern.test(studentNumber);
+        }
+
+        function formatStudentNumber(input) {
+            let value = input.value.toUpperCase();
+            
+            // Remove any non-alphanumeric characters
+            value = value.replace(/[^A-Z0-9]/g, '');
+            
+            // Ensure it starts with S
+            if (value.length > 0 && value[0] !== 'S') {
+                value = 'S' + value;
+            }
+            
+            // Limit to 8 characters (S + 7 digits)
+            value = value.substring(0, 8);
+            
+            input.value = value;
+            return value;
+        }
+
+        function updateInputValidation(input) {
+            const value = input.value;
+            const isValid = validateStudentNumber(value);
+            
+            // Remove existing validation classes
+            input.classList.remove('input-error', 'input-valid');
+            
+            if (value.length === 0) {
+                // No validation styling for empty input
+                return false;
+            } else if (isValid) {
+                input.classList.add('input-valid');
+                return true;
+            } else {
+                input.classList.add('input-error');
+                return false;
+            }
+        }
+
+        // Add event listeners for real-time validation
+        document.addEventListener('DOMContentLoaded', function() {
+            const studentNumberInput = document.getElementById('studentNumber');
+            
+            // Format and validate on input
+            studentNumberInput.addEventListener('input', function() {
+                formatStudentNumber(this);
+                updateInputValidation(this);
+            });
+            
+            // Validate on blur
+            studentNumberInput.addEventListener('blur', function() {
+                updateInputValidation(this);
+            });
+            
+            // Validate on focus
+            studentNumberInput.addEventListener('focus', function() {
+                updateInputValidation(this);
+            });
+        });
 
         function setButtonState(loading, text) {
             const button = document.getElementById('submitButton');
@@ -494,6 +576,12 @@
         document.getElementById('eulaForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const studentNumber = document.getElementById('studentNumber').value;
+            
+            // Validate student number format
+            if (!validateStudentNumber(studentNumber)) {
+                showMessage('Please enter a valid student number in the format S####### (S followed by 7 digits).', 'error');
+                return;
+            }
             
             // Set initial loading state
             setButtonState(true, 'Processing...');
