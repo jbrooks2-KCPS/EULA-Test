@@ -384,39 +384,13 @@
             
             if (isIOS) {
                 instructions.innerHTML = `
-                    <h3 style="color: #333; margin-bottom: 15px;">Choose your save method:</h3>
-                    
-                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #4CAF50;">
-                        <h4 style="color: #4CAF50; margin: 0 0 10px 0;">📸 Method 1: Save to Photos</h4>
-                        <p style="margin: 5px 0; color: #666;">1. Long press on the image above</p>
-                        <p style="margin: 5px 0; color: #666;">2. Select "Save Image"</p>
-                    </div>
-                    
-                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ffc107;">
-                        <h4 style="color: #ffc107; margin: 0 0 10px 0;">📁 Method 2: Save to Files</h4>
-                        <p style="margin: 5px 0; color: #666;">1. Long press on the image above</p>
-                        <p style="margin: 5px 0; color: #666;">2. Select "Save to Files"</p>
-                    </div>
-                    
-                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #2196F3;">
-                        <h4 style="color: #2196F3; margin: 0 0 10px 0;">🔗 Method 3: Direct Download</h4>
-                        <p style="margin: 5px 0; color: #666;">Click the download button below</p>
-                    </div>
+                    <h3 style="color: #333; margin-bottom: 15px;">Save your EULA acceptance record:</h3>
+                    <p style="color: #666; font-size: 16px; line-height: 1.5;">Long press on the image above to save it to your Photos or Files app.</p>
                 `;
             } else {
                 instructions.innerHTML = `
                     <h3 style="color: #333; margin-bottom: 15px;">Save your EULA acceptance record:</h3>
-                    
-                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #4CAF50;">
-                        <h4 style="color: #4CAF50; margin: 0 0 10px 0;">💾 Method 1: Right-click Save</h4>
-                        <p style="margin: 5px 0; color: #666;">1. Right-click on the image above</p>
-                        <p style="margin: 5px 0; color: #666;">2. Select "Save Image As..."</p>
-                    </div>
-                    
-                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #2196F3;">
-                        <h4 style="color: #2196F3; margin: 0 0 10px 0;">🔗 Method 2: Direct Download</h4>
-                        <p style="margin: 5px 0; color: #666;">Click the download button below</p>
-                    </div>
+                    <p style="color: #666; font-size: 16px; line-height: 1.5;">Right-click on the image above to save it to your device.</p>
                 `;
             }
             
@@ -500,30 +474,12 @@
                 }, 1000);
             };
             
-            const closeBtn = document.createElement('button');
-            closeBtn.textContent = '❌ Cancel';
-            closeBtn.style.cssText = `
-                background: #666;
-                color: white;
-                border: none;
-                padding: 12px 25px;
-                border-radius: 6px;
-                font-size: 14px;
-                cursor: pointer;
-            `;
-            closeBtn.onclick = () => {
-                document.body.removeChild(modal);
-                URL.revokeObjectURL(url);
-                setButtonState(false); // Reset button state
-            };
-            
             content.appendChild(title);
             content.appendChild(imagePreview);
             content.appendChild(instructions);
             content.appendChild(downloadBtn);
             buttonContainer.appendChild(savedBtn);
             buttonContainer.appendChild(skipBtn);
-            buttonContainer.appendChild(closeBtn);
             content.appendChild(buttonContainer);
             modal.appendChild(content);
             document.body.appendChild(modal);
