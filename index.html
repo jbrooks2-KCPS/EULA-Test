@@ -303,7 +303,7 @@
         }
 
         async function trySaveImage(file, blob, studentNumber) {
-            // Method 1: Try Web Share API (works best on iOS)
+            // Method 1: Try Web Share API to save directly to Photos (best for iOS)
             if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                 try {
                     await navigator.share({
@@ -318,13 +318,13 @@
                 }
             }
             
-            // Method 2: For iPads, go directly to manual save (download doesn't work well on iOS)
+            // Method 2: For iOS devices, show manual save with Files option
             if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
                 displayImageForManualSave(blob, studentNumber);
                 return;
             }
             
-            // Method 3: Try to download (only for non-iOS devices)
+            // Method 3: For non-iOS devices, try download to Files/Downloads
             try {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -335,13 +335,13 @@
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-                showMessage('EULA acceptance record downloaded! You can save it to Photos manually.', 'success');
+                showMessage('EULA acceptance record downloaded to Files!', 'success');
                 return;
             } catch (downloadError) {
                 console.error('Download error:', downloadError);
             }
             
-            // Method 4: Display image and provide manual save instructions (fallback)
+            // Method 4: Ultimate fallback - display image for manual save
             displayImageForManualSave(blob, studentNumber);
         }
 
@@ -354,7 +354,7 @@
                 left: 0;
                 width: 100%;
                 height: 100%;
-                background: rgba(0,0,0,0.9);
+                background: rgba(0,0,0,0.95);
                 z-index: 1000;
                 display: flex;
                 flex-direction: column;
@@ -368,7 +368,7 @@
             img.src = imageUrl;
             img.style.cssText = `
                 max-width: 95%;
-                max-height: 60%;
+                max-height: 55%;
                 border: 3px solid white;
                 border-radius: 12px;
                 box-shadow: 0 4px 20px rgba(0,0,0,0.5);
@@ -383,16 +383,40 @@
                 line-height: 1.6;
                 max-width: 500px;
             `;
-            instructions.innerHTML = `
-                <h3 style="color: #4CAF50; margin-bottom: 15px;">📱 Save Your EULA Acceptance Record</h3>
-                <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin: 15px 0;">
-                    <p style="font-weight: bold; color: #4CAF50; margin-bottom: 10px;">To save this image to your Photos:</p>
-                    <p style="margin: 8px 0;">1️⃣ <strong>Long press</strong> on the image above</p>
-                    <p style="margin: 8px 0;">2️⃣ Select <strong>"Save Image"</strong> or <strong>"Add to Photos"</strong></p>
-                    <p style="margin: 8px 0;">3️⃣ The image will be saved to your Photos app</p>
-                </div>
-                <p style="font-style: italic; color: #ccc; margin-top: 15px;">This serves as proof of your EULA acceptance.</p>
-            `;
+            
+            // Check if it's an iOS device for specific instructions
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            
+            if (isIOS) {
+                instructions.innerHTML = `
+                    <h3 style="color: #4CAF50; margin-bottom: 15px;">📱 Save Your EULA Acceptance Record</h3>
+                    <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin: 15px 0;">
+                        <p style="font-weight: bold; color: #4CAF50; margin-bottom: 15px;">Choose how to save:</p>
+                        <div style="margin: 15px 0; padding: 15px; background: rgba(76,175,80,0.2); border-radius: 8px;">
+                            <p style="font-weight: bold; margin-bottom: 8px;">📸 Save to Photos:</p>
+                            <p style="margin: 5px 0; font-size: 16px;">1. Long press the image above</p>
+                            <p style="margin: 5px 0; font-size: 16px;">2. Select "Save Image"</p>
+                        </div>
+                        <div style="margin: 15px 0; padding: 15px; background: rgba(255,193,7,0.2); border-radius: 8px;">
+                            <p style="font-weight: bold; margin-bottom: 8px;">📁 Save to Files:</p>
+                            <p style="margin: 5px 0; font-size: 16px;">1. Long press the image above</p>
+                            <p style="margin: 5px 0; font-size: 16px;">2. Select "Save to Files"</p>
+                        </div>
+                    </div>
+                    <p style="font-style: italic; color: #ccc; margin-top: 15px;">This serves as proof of your EULA acceptance.</p>
+                `;
+            } else {
+                instructions.innerHTML = `
+                    <h3 style="color: #4CAF50; margin-bottom: 15px;">💾 Save Your EULA Acceptance Record</h3>
+                    <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin: 15px 0;">
+                        <p style="font-weight: bold; color: #4CAF50; margin-bottom: 10px;">To save this image:</p>
+                        <p style="margin: 8px 0;">1️⃣ <strong>Right-click</strong> on the image above</p>
+                        <p style="margin: 8px 0;">2️⃣ Select <strong>"Save Image As..."</strong></p>
+                        <p style="margin: 8px 0;">3️⃣ Choose your desired location</p>
+                    </div>
+                    <p style="font-style: italic; color: #ccc; margin-top: 15px;">This serves as proof of your EULA acceptance.</p>
+                `;
+            }
             
             const closeButton = document.createElement('button');
             closeButton.textContent = 'Close';
@@ -417,7 +441,11 @@
             modal.appendChild(closeButton);
             document.body.appendChild(modal);
             
-            showMessage('EULA acceptance record displayed! Long press the image to save it to Photos.', 'info');
+            if (isIOS) {
+                showMessage('EULA record displayed! Long press to save to Photos or Files.', 'info');
+            } else {
+                showMessage('EULA record displayed! Right-click to save the image.', 'info');
+            }
         }
 
         document.getElementById('eulaForm').addEventListener('submit', async function(e) {
